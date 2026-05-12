@@ -1,0 +1,108 @@
+@startuml Sistema de Internacao Hospitalar
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam backgroundColor #FAFAFA
+skinparam class {
+    BackgroundColor #EAF2FB
+    BorderColor #2E86C1
+    ArrowColor #1A5276
+    HeaderBackgroundColor #2E86C1
+    HeaderFontColor #FFFFFF
+}
+skinparam package {
+    BackgroundColor #EBF5FB
+    BorderColor #5DADE2
+    FontStyle bold
+}
+
+title Sistema de Internação Hospitalar\n
+
+package "subsistema" {
+    class CadastroPaciente {
+        - pacientes : Map<String, String>
+        --
+        + registrar(cpf, nome) : boolean
+        + existe(cpf) : boolean
+        + getNome(cpf) : String
+        + getTotalCadastrados() : int
+    }
+
+    class Triagem {
+        <<enum>> Prioridade
+        EMERGENCIA | URGENTE | ELETIVO
+        --
+        + classificar(sintomas : String) : Prioridade
+    }
+
+    class PlanoSaude {
+        - CONVENIADOS : Set<String>
+        --
+        + validar(operadora : String) : boolean
+        + calcularCoparticipacao(operadora, valor) : double
+    }
+
+    class AlocacaoLeito {
+        - leitosOcupados : Map<String, String>
+        --
+        + alocar(cpf, prioridade) : String
+        + liberar(cpf) : boolean
+        + getLeitoAtual(cpf) : String
+        + estaInternado(cpf) : boolean
+        + getTotalOcupados() : int
+    }
+}
+
+package "internacao" {
+    class ResultadoInternacao {
+        - sucesso : boolean
+        - leito : String
+        - mensagem : String
+        - prioridade : Triagem.Prioridade
+        --
+        + isSucesso() : boolean
+        + getLeito() : String
+        + getMensagem() : String
+        + getPrioridade() : Prioridade
+    }
+
+    class SistemaDeInternacao {
+        - cadastro : CadastroPaciente
+        - triagem : Triagem
+        - plano : PlanoSaude
+        - alocacao : AlocacaoLeito
+        --
+        + SistemaDeInternacao()
+        + internar(cpf, nome, sintomas,\n  operadora) : ResultadoInternacao
+        + darAlta(cpf) : boolean
+        + getCadastro() : CadastroPaciente
+        + getTriagem() : Triagem
+        + getPlano() : PlanoSaude
+        + getAlocacao() : AlocacaoLeito
+    }
+
+    SistemaDeInternacao ..> ResultadoInternacao : retorna >
+}
+
+class Main {
+    + {static} main(args : String[]) : void
+}
+
+SistemaDeInternacao --> CadastroPaciente : registra >
+SistemaDeInternacao --> Triagem          : classifica >
+SistemaDeInternacao --> PlanoSaude       : valida >
+SistemaDeInternacao --> AlocacaoLeito    : aloca >
+Main --> SistemaDeInternacao             : usa >
+
+note right of SistemaDeInternacao
+  A recepção chama apenas:
+  internar() e darAlta()
+  ---
+  Internamente orquestra:
+  1. CadastroPaciente — valida CPF/nome
+  2. Triagem — classifica a prioridade
+  3. PlanoSaude — verifica convênio
+  4. AlocacaoLeito — UTI/ENF/APT
+end note
+
+@enduml
